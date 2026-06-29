@@ -470,12 +470,23 @@ const state={studentName:'',brief:'',rubric:'',wordLimit:'',readings:'',briefFil
 function countWords(t){return t.trim().split(/\s+/).filter(w=>w.length>0).length}
 function showLoading(id,msg){document.getElementById(id).innerHTML=`<div class="loading"><div class="spinner"></div>${msg}</div>`;}
 
+function getApiKey(){return localStorage.getItem('ec_api_key')||'';}
+
 async function callClaude(system,user,extraMessages){
+  const key=getApiKey();
+  if(!key){showApiKeyOverlay();throw new Error('No API key');}
   const messages=extraMessages||[{role:"user",content:user}];
   const body={model:"claude-sonnet-4-6",max_tokens:1000,system,messages};
-  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01"},
+    body:JSON.stringify(body)
+  });
   const d=await res.json();
-  if(d.error) throw new Error(d.error.message);
+  if(d.error){
+    if(d.error.type==='authentication_error'){localStorage.removeItem('ec_api_key');showApiKeyOverlay();throw new Error('Invalid API key — please re-enter your key.');}
+    throw new Error(d.error.message);
+  }
   return d.content[0].text;
 }
 
@@ -489,8 +500,9 @@ async function extractTextFromFile(file){
       reader.onload=async(ev)=>{
         const base64=ev.target.result.split(',')[1];
         try{
+          const key=getApiKey();
           const res=await fetch("https://api.anthropic.com/v1/messages",{
-            method:"POST",headers:{"Content-Type":"application/json"},
+            method:"POST",headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01"},
             body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,
               messages:[{role:"user",content:[
                 {type:"image",source:{type:"base64",media_type:"image/jpeg",data:base64}},
@@ -958,6 +970,58 @@ async function runModalIntegrityCheck(){
   showLoading('modalIntegrityOutput','Checking...');
   await runIntegrityCheck(text,document.getElementById('modalIntegrityOutput'));
 }
+
+// ─── API KEY MANAGEMENT ────────────────────────────────────────────────────
+function showApiKeyOverlay(){
+  document.getElementById('apiKeyOverlay').style.display='flex';
+}
+
+function hideApiKeyOverlay(){
+  document.getElementById('apiKeyOverlay').style.display='none';
+}
+
+async function saveApiKey(){
+  const key=document.getElementById('apiKeyInput').value.trim();
+  const errEl=document.getElementById('apiKeyError');
+  if(!key||!key.startsWith('sk-ant')){
+    errEl.style.display='block';
+    errEl.textContent='Please enter a valid Anthropic API key (starts with sk-ant...)';
+    return;
+  }
+  errEl.style.display='none';
+  // Test the key
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:10,messages:[{role:"user",content:"hi"}]})
+    });
+    const d=await res.json();
+    if(d.error&&d.error.type==='authentication_error'){
+      errEl.style.display='block';
+      errEl.textContent='API key not recognised — please check it and try again.';
+      return;
+    }
+    localStorage.setItem('ec_api_key',key);
+    hideApiKeyOverlay();
+  }catch(e){
+    errEl.style.display='block';
+    errEl.textContent='Could not verify key — check your internet connection and try again.';
+  }
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  if(!localStorage.getItem('ec_api_key')){
+    showApiKeyOverlay();
+  }
+});
+
+// Allow Enter key on API input
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp=document.getElementById('apiKeyInput');
+  if(inp) inp.addEventListener('keydown',e=>{if(e.key==='Enter') saveApiKey();});
+});
 </script>
 </body>
 </html>
