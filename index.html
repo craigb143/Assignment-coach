@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Essay Coach</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;1,300&family=Inter:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1a1a2e;--soft:#f7f4ef;--cream:#fffdf9;
+  --sage:#4a7c59;--sage-light:#e8f0eb;
+  --amber:#c97d2e;--amber-light:#fdf3e7;
+  --rose:#b85c5c;--rose-light:#fdf0f0;
+  --violet:#6b5b95;--violet-light:#f0eef8;
+  --muted:#6b7280;--border:#e5e0d8;
+  --shadow:0 2px 12px rgba(26,26,46,0.08);
+}
+body{font-family:'Inter',sans-serif;background:var(--soft);color:var(--ink);min-height:100vh}
+.header{background:var(--ink);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.header-logo{font-family:'Fraunces',serif;font-weight:300;font-size:22px;color:var(--cream)}
+.header-logo span{color:var(--amber);font-style:italic}
+.header-sub{font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px}
+.header-btns{display:flex;gap:8px;flex-wrap:wrap}
+.header-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif}
+.header-btn:hover{background:rgba(255,255,255,0.2)}
+.progress-wrap{background:var(--cream);border-bottom:1px solid var(--border);padding:0 32px;display:flex;overflow-x:auto}
+.progress-step{display:flex;align-items:center;gap:8px;padding:13px 20px 13px 0;font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.2s}
+.progress-step.active{color:var(--sage);border-bottom-color:var(--sage)}
+.progress-step.done{color:var(--ink);border-bottom-color:var(--ink)}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.progress-step.active .step-num{background:var(--sage);color:white}
+.progress-step.done .step-num{background:var(--ink);color:white}
+.main{max-width:880px;margin:0 auto;padding:32px 24px 80px}
+.stage{display:none}.stage.active{display:block}
+.card{background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:20px;box-shadow:var(--shadow)}
+.card-title{font-family:'Fraunces',serif;font-size:22px;font-weight:300;margin-bottom:6px;letter-spacing:-0.3px}
+.card-sub{font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.6}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+textarea,input[type=text]{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);background:white;resize:vertical;transition:border-color 0.2s;line-height:1.6}
+textarea:focus,input[type=text]:focus{outline:none;border-color:var(--sage)}
+.field{margin-bottom:18px}
+.field-hint{font-size:12px;color:var(--muted);margin-top:5px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.18s}
+.btn-primary{background:var(--sage);color:white}.btn-primary:hover{background:#3d6b4a}
+.btn-primary:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+.btn-secondary{background:transparent;color:var(--sage);border:1.5px solid var(--sage)}.btn-secondary:hover{background:var(--sage-light)}
+.btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--border)}.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-rose{background:var(--rose);color:white}.btn-rose:hover{background:#9e4a4a}
+.btn-violet{background:var(--violet);color:white}.btn-violet:hover{background:#5a4a7a}
+.btn-amber{background:var(--amber);color:white}.btn-amber:hover{background:#a8681e}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.ai-box{background:var(--sage-light);border:1px solid #c5d9ca;border-radius:10px;padding:18px 20px;margin:14px 0}
+.ai-box-label{font-size:11px;font-weight:700;color:var(--sage);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px}
+.ai-box-content{font-size:14px;line-height:1.8;color:var(--ink);white-space:pre-wrap}
+.loading{display:flex;align-items:center;gap:10px;padding:16px;font-size:13px;color:var(--muted);font-style:italic}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--sage);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.info-box{background:var(--amber-light);border:1px solid #f0d9b8;border-radius:8px;padding:14px 16px;font-size:13px;color:var(--ink);line-height:1.6;margin-bottom:14px}
+.info-box strong{color:var(--amber)}
+.warn-box{background:var(--rose-light);border:1px solid #e8b4b4;border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.6;margin-bottom:14px}
+.warn-box strong{color:var(--rose)}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all 0.2s;background:white;position:relative}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--sage);background:var(--sage-light)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone-icon{font-size:28px;margin-bottom:8px}
+.upload-zone-label{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px}
+.upload-zone-hint{font-size:12px;color:var(--muted)}
+.upload-success{background:var(--sage-light);border:1.5px solid var(--sage);border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:8px;margin-top:8px}
+.upload-success-icon{color:var(--sage);font-size:16px}
+.upload-preview{background:white;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-top:8px;font-size:12px;color:var(--muted);max-height:80px;overflow:hidden;position:relative}
+.upload-preview::after{content:'';position:absolute;bottom:0;left:0;right:0;height:24px;background:linear-gradient(transparent,white)}
+
+/* Reference cards */
+.ref-card{background:white;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.ref-card-header{padding:14px 16px;display:flex;align-items:flex-start;gap:12px;cursor:pointer}
+.ref-card-badge{padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.badge-built-in{background:var(--sage-light);color:var(--sage)}
+.badge-web{background:var(--violet-light);color:var(--violet)}
+.ref-card-title{font-size:13px;font-weight:600;line-height:1.4;flex:1}
+.ref-card-body{padding:0 16px 16px;border-top:1px solid var(--border)}
+.ref-apa{font-size:12px;font-family:monospace;background:var(--soft);padding:10px 12px;border-radius:6px;margin:10px 0;line-height:1.6;color:var(--ink)}
+.ref-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px}
+.ref-section-body{font-size:13px;line-height:1.65;color:var(--ink)}
+.ref-add-btn{margin-top:10px}
+
+/* Integrity */
+.integrity-banner{border-radius:10px;padding:14px 16px;margin:12px 0;font-size:13px;line-height:1.65}
+.integrity-ai{background:#fdf0f0;border:1.5px solid #e8b4b4}
+.integrity-ok{background:var(--sage-light);border:1.5px solid #c5d9ca}
+.integrity-warn{background:#fff8e1;border:1.5px solid #f0d070}
+.integrity-title{font-weight:700;font-size:12px;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px}
+.integrity-ai .integrity-title{color:var(--rose)}
+.integrity-warn .integrity-title{color:#b8860b}
+.integrity-ok .integrity-title{color:var(--sage)}
+.flagged-phrase{background:#ffd6d6;border-bottom:2px solid var(--rose);border-radius:2px;padding:0 2px}
+
+/* APA */
+.apa-box{background:var(--violet-light);border:1px solid #c8c0e0;border-radius:10px;padding:16px 18px;margin:12px 0}
+.apa-box-label{font-size:11px;font-weight:700;color:var(--violet);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px}
+.apa-rule{background:white;border:1px solid #c8c0e0;border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px;line-height:1.65}
+.apa-rule-title{font-weight:700;font-size:12px;color:var(--violet);margin-bottom:6px}
+.apa-correct{color:var(--sage);font-family:monospace;font-size:12px;background:var(--sage-light);padding:6px 10px;border-radius:6px;display:block;margin:4px 0}
+.apa-wrong{color:var(--rose);font-family:monospace;font-size:12px;background:var(--rose-light);padding:6px 10px;border-radius:6px;display:block;margin:4px 0;text-decoration:line-through}
+
+/* Framework */
+.framework-selector{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.fw-btn{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:2px solid var(--border);background:white;color:var(--muted);transition:all 0.15s;font-family:'Inter',sans-serif}
+.fw-btn:hover{border-color:var(--ink);color:var(--ink)}
+.fw-btn.selected{border-color:var(--violet);background:var(--violet-light);color:var(--violet)}
+.fw-btn.suggested{border-color:var(--sage);background:var(--sage-light);color:var(--sage)}
+.para-card{background:white;border:1.5px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;transition:border-color 0.2s}
+.para-card.active-para{border-color:var(--sage)}
+.para-card.done-para{border-color:#c5d9ca}
+.para-header{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+.para-num{width:28px;height:28px;border-radius:50%;background:var(--soft);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.para-card.active-para .para-num{background:var(--sage);border-color:var(--sage);color:white}
+.para-card.done-para .para-num{background:var(--ink);border-color:var(--ink);color:white}
+.para-title{font-size:14px;font-weight:600}
+.para-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.para-words{font-size:12px;color:var(--muted);margin-left:auto;white-space:nowrap}
+.para-body{padding:4px 18px 20px}
+.fw-steps{display:flex;margin-bottom:16px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.fw-step{flex:1;padding:9px 6px;text-align:center;font-size:11px;font-weight:700;background:var(--soft);border-right:1px solid var(--border);cursor:pointer;transition:background 0.15s}
+.fw-step:last-child{border-right:none}
+.fw-step.active-step{background:var(--ink);color:white}
+.fw-step-label{font-size:10px;font-weight:400;color:var(--muted);margin-top:2px}
+.fw-step.active-step .fw-step-label{color:rgba(255,255,255,0.6)}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:4px;margin-bottom:18px}
+.tab{flex:1;padding:8px 10px;border-radius:6px;font-size:12px;font-weight:500;text-align:center;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all 0.15s;font-family:'Inter',sans-serif}
+.tab.active{background:white;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+.draft-display{background:white;border:1px solid var(--border);border-radius:10px;padding:20px;font-size:14px;line-height:1.9;min-height:150px;white-space:pre-wrap}
+.word-count{font-size:12px;color:var(--muted);margin-top:6px;text-align:right}
+.word-count.over{color:var(--rose)}.word-count.good{color:var(--sage)}
+.rubric-item{background:white;border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:12px}
+.rubric-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:8px}
+.badge-hd{background:#e8f0eb;color:#4a7c59}.badge-d{background:#e8f4fb;color:#2d7da8}
+.badge-cr{background:var(--amber-light);color:var(--amber)}.badge-p{background:#fff3e0;color:#e07c00}
+.badge-fail{background:var(--rose-light);color:var(--rose)}
+.declaration-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.declaration-item:last-child{border-bottom:none}
+.declaration-item input[type=checkbox]{width:18px;height:18px;margin-top:2px;flex-shrink:0;accent-color:var(--sage)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;overflow-y:auto}
+.modal-inner{max-width:720px;margin:40px auto;padding:0 16px 60px}
+.ref-builder-step{background:white;border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+.ref-builder-step-title{font-size:12px;font-weight:700;color:var(--violet);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+@media(max-width:600px){.main{padding:20px 16px 60px}.header{padding:14px 18px}.card{padding:18px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">Essay <span>Coach</span></div>
+    <div class="header-sub">Guided writing assistant</div>
+  </div>
+  <div class="header-btns">
+    <button class="header-btn" onclick="openModal('apaModal')">📚 APA Builder</button>
+    <button class="header-btn" onclick="openModal('integrityModal')">🛡 Integrity Check</button>
+    <button class="header-btn" onclick="openModal('fwModal')">⚙ Frameworks</button>
+  </div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-step active" data-step="0"><div class="step-num">1</div> Set Up</div>
+  <div class="progress-step" data-step="1"><div class="step-num">2</div> Understand</div>
+  <div class="progress-step" data-step="2"><div class="step-num">3</div> Plan</div>
+  <div class="progress-step" data-step="3"><div class="step-num">4</div> References</div>
+  <div class="progress-step" data-step="4"><div class="step-num">5</div> Write</div>
+  <div class="progress-step" data-step="5"><div class="step-num">6</div> Check</div>
+</div>
+
+<div class="main">
+
+<!-- STAGE 0: Setup -->
+<div class="stage active" id="stage-0">
+  <div class="card">
+    <div class="card-title">Let's get started</div>
+    <div class="card-sub">Upload your assignment and rubric files, or paste the text directly. The coach guides you through every step — planning, finding references, writing, and a final integrity check.</div>
+    <div class="warn-box"><strong>⚠ Academic integrity:</strong> This app helps you think and write — it will never write your essay for you. All sentences must be in your own words.</div>
+
+    <div class="field"><label>Your name</label><input type="text" id="studentName" placeholder="e.g. Emily"/></div>
+
+    <!-- Assignment upload -->
+    <div class="field">
+      <label>Assignment brief</label>
+      <div class="upload-zone" id="briefZone" ondragover="handleDrag(event,'briefZone')" ondragleave="handleDragLeave(event,'briefZone')" ondrop="handleDrop(event,'brief')">
+        <input type="file" accept=".pdf,.docx,.doc,.png,.jpg,.jpeg" onchange="handleFile(event,'brief')"/>
+        <div class="upload-zone-icon">📄</div>
+        <div class="upload-zone-label">Upload assignment brief</div>
+        <div class="upload-zone-hint">PDF, Word (.docx), or image — or drag and drop</div>
+      </div>
+      <div id="briefUploadStatus"></div>
+      <div style="text-align:center;font-size:12px;color:var(--muted);margin:10px 0">— or type/paste below —</div>
+      <textarea id="assignmentBrief" rows="4" placeholder="Paste or type the assignment brief here..."></textarea>
+    </div>
+
+    <!-- Rubric upload -->
+    <div class="field">
+      <label>Marking rubric</label>
+      <div class="upload-zone" id="rubricZone" ondragover="handleDrag(event,'rubricZone')" ondragleave="handleDragLeave(event,'rubricZone')" ondrop="handleDrop(event,'rubric')">
+        <input type="file" accept=".pdf,.docx,.doc,.png,.jpg,.jpeg" onchange="handleFile(event,'rubric')"/>
+        <div class="upload-zone-icon">📋</div>
+        <div class="upload-zone-label">Upload rubric</div>
+        <div class="upload-zone-hint">PDF, Word (.docx), or photo of printed rubric</div>
+      </div>
+      <div id="rubricUploadStatus"></div>
+      <div style="text-align:center;font-size:12px;color:var(--muted);margin:10px 0">— or type/paste below —</div>
+      <textarea id="rubricText" rows="4" placeholder="Paste or type the rubric here..."></textarea>
+    </div>
+
+    <div class="field"><label>Word limit</label><input type="text" id="wordLimit" placeholder="e.g. 450-500 words"/></div>
+    <div class="field">
+      <label>Key readings you need to use (optional)</label>
+      <textarea id="keyReadings" rows="2" placeholder="e.g. Dinham & Chalk (2022), EYLF (2022), AITSL (2011)..."></textarea>
+      <div class="field-hint">Leave blank and the reference finder will suggest sources based on your topic.</div>
+    </div>
+    <div class="btn-row"><button class="btn btn-primary" onclick="startCoaching()">Start coaching →</button></div>
+  </div>
+</div>
+
+<!-- STAGE 1: Understand -->
+<div class="stage" id="stage-1">
+  <div class="card">
+    <div class="card-title">Understanding your task</div>
+    <div class="card-sub">Before writing anything, make sure you know exactly what's being asked.</div>
+    <div id="understandOutput"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToStage(2)">Got it — build my plan →</button>
+      <button class="btn btn-ghost" onclick="goToStage(0)">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAGE 2: Plan -->
+<div class="stage" id="stage-2">
+  <div class="card">
+    <div class="card-title">Your essay plan</div>
+    <div class="card-sub">A paragraph-by-paragraph structure with recommended writing frameworks.</div>
+    <div id="planOutput"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToStage(3)">Find references →</button>
+      <button class="btn btn-ghost" onclick="goToStage(1)">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAGE 3: References -->
+<div class="stage" id="stage-3">
+  <div class="card">
+    <div class="card-title">Finding your references</div>
+    <div class="card-sub">Suggested sources for your assignment — built-in ECE library first, then web search for more. Each shows the full APA 7th citation, a plain-English summary, and a paraphrase example.</div>
+
+    <div class="apa-box" style="margin-bottom:20px">
+      <div class="apa-box-label">📚 APA 7th Quick Rules</div>
+      <div class="apa-rule"><div class="apa-rule-title">In-text: one author</div><span class="apa-correct">(Smith, 2022, p. 45)</span><span class="apa-wrong">(Smith 2022 p45)</span></div>
+      <div class="apa-rule"><div class="apa-rule-title">In-text: two authors</div><span class="apa-correct">(Smith & Jones, 2022)</span><span class="apa-wrong">(Smith and Jones, 2022)</span></div>
+      <div class="apa-rule"><div class="apa-rule-title">Three or more authors</div><span class="apa-correct">(Smith et al., 2022)</span><span class="apa-wrong">(Smith, Jones & Brown, 2022)</span></div>
+      <div class="apa-rule"><div class="apa-rule-title">Paraphrase (preferred)</div><span class="apa-correct">Rewrite in your own words — still cite (Author, Year, p. X)</span><span class="apa-wrong">Never copy sentences without quotation marks</span></div>
+    </div>
+
+    <div id="refsBuiltIn"></div>
+
+    <div style="margin:20px 0 14px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px">🔍 Search for more references</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Enter a topic or keyword to find additional academic sources.</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="refSearchQuery" placeholder="e.g. children's identity early childhood, arts education creativity..." style="flex:1"/>
+        <button class="btn btn-violet" onclick="searchMoreRefs()">Search →</button>
+      </div>
+    </div>
+    <div id="refsWebSearch"></div>
+
+    <div id="myRefList" style="margin-top:20px"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToStage(4)">Start writing →</button>
+      <button class="btn btn-ghost" onclick="goToStage(2)">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAGE 4: Write -->
+<div class="stage" id="stage-4">
+  <div class="card">
+    <div class="card-title">Writing your essay</div>
+    <div class="card-sub">Answer the guiding questions in your own words. Use the integrity checker at any time to check your writing before moving on.</div>
+    <div class="tabs">
+      <button class="tab active" id="tab-guide" onclick="switchTab('guide')">Guided writing</button>
+      <button class="tab" id="tab-draft" onclick="switchTab('draft')">My draft</button>
+    </div>
+    <div id="writeGuide"><div id="paragraphsOutput"></div></div>
+    <div id="writeDraft" style="display:none">
+      <div class="info-box"><strong>Tip:</strong> This draft is built from your answers. Copy it into Word and refine it — every sentence must truly sound like you.</div>
+      <div class="draft-display" id="draftDisplay">Complete paragraphs above to build your draft...</div>
+      <div class="word-count" id="draftWordCount"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToStage(5)">Final check →</button>
+      <button class="btn btn-ghost" onclick="goToStage(3)">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAGE 5: Final Check -->
+<div class="stage" id="stage-5">
+  <div class="card">
+    <div class="card-title">Final check</div>
+    <div class="card-sub">Four checks before you submit.</div>
+    <div class="tabs">
+      <button class="tab active" id="ftab-rubric" onclick="switchFinalTab('rubric')">Rubric</button>
+      <button class="tab" id="ftab-integrity" onclick="switchFinalTab('integrity')">Integrity</button>
+      <button class="tab" id="ftab-apa" onclick="switchFinalTab('apa')">APA Check</button>
+      <button class="tab" id="ftab-declare" onclick="switchFinalTab('declare')">Declaration</button>
+    </div>
+    <div id="fpanel-rubric">
+      <div class="field"><label>Paste your completed essay</label><textarea id="finalEssay" rows="10" placeholder="Paste your finished essay here..."></textarea></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="checkRubric()">Check rubric →</button></div>
+      <div id="rubricOutput" style="margin-top:20px"></div>
+    </div>
+    <div id="fpanel-integrity" style="display:none">
+      <div class="field"><label>Paste your essay for integrity check</label><textarea id="integrityEssay" rows="10" placeholder="Paste your essay..."></textarea></div>
+      <div class="btn-row"><button class="btn btn-rose" onclick="checkIntegrity()">🛡 Run integrity check →</button></div>
+      <div id="integrityOutput" style="margin-top:20px"></div>
+    </div>
+    <div id="fpanel-apa" style="display:none">
+      <div class="field"><label>Paste your reference list</label><textarea id="apaEssay" rows="8" placeholder="Paste your APA 7th reference list..."></textarea></div>
+      <div class="field"><label>Paste in-text citations (optional)</label><textarea id="apaIntext" rows="3" placeholder="e.g. (Dinham & Chalk, 2022, p. 76)..."></textarea></div>
+      <div class="btn-row"><button class="btn btn-violet" onclick="checkAPA()">📚 Check APA 7th →</button></div>
+      <div id="apaOutput" style="margin-top:20px"></div>
+    </div>
+    <div id="fpanel-declare" style="display:none">
+      <div class="warn-box"><strong>Read each statement carefully. Tick only if true.</strong></div>
+      <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:16px">
+        <div class="declaration-item"><input type="checkbox" id="dec1"><label style="font-size:13px;line-height:1.6" for="dec1">Every sentence is written in my own words. I have not copied from any source including AI tools.</label></div>
+        <div class="declaration-item"><input type="checkbox" id="dec2"><label style="font-size:13px;line-height:1.6" for="dec2">I have paraphrased all sources rather than copying them directly.</label></div>
+        <div class="declaration-item"><input type="checkbox" id="dec3"><label style="font-size:13px;line-height:1.6" for="dec3">All in-text citations follow APA 7th format (Author, Year, p. X).</label></div>
+        <div class="declaration-item"><input type="checkbox" id="dec4"><label style="font-size:13px;line-height:1.6" for="dec4">My reference list is in APA 7th and includes every source cited.</label></div>
+        <div class="declaration-item"><input type="checkbox" id="dec5"><label style="font-size:13px;line-height:1.6" for="dec5">I have not used this app to write sentences for me — only to guide my thinking.</label></div>
+        <div class="declaration-item"><input type="checkbox" id="dec6"><label style="font-size:13px;line-height:1.6" for="dec6">I have read and understand Curtin University's academic integrity policy.</label></div>
+      </div>
+      <div id="declarationResult"></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="checkDeclaration()">Submit declaration →</button></div>
+    </div>
+    <div class="btn-row" style="margin-top:10px"><button class="btn btn-ghost" onclick="goToStage(4)">← Back</button></div>
+  </div>
+</div>
+
+<!-- APA BUILDER MODAL -->
+<div class="modal-overlay" id="apaModal">
+  <div class="modal-inner"><div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="card-title" style="margin:0">📚 APA 7th Builder</div>
+      <button class="btn btn-ghost" onclick="closeModal('apaModal')">Close ✕</button>
+    </div>
+    <div class="card-sub">Select a source type, fill in the details, and get a correctly formatted reference.</div>
+    <div class="field">
+      <label>Source type</label>
+      <select id="apaSourceType" onchange="renderApaBuilder()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;background:white">
+        <option value="">— Select —</option>
+        <option value="book">Book</option>
+        <option value="chapter">Book chapter</option>
+        <option value="journal">Journal article</option>
+        <option value="report">Government/organisational report</option>
+        <option value="website">Webpage</option>
+      </select>
+    </div>
+    <div id="apaBuilderContent"></div>
+    <div id="apaBuilderResult"></div>
+  </div></div>
+</div>
+
+<!-- INTEGRITY MODAL -->
+<div class="modal-overlay" id="integrityModal">
+  <div class="modal-inner"><div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="card-title" style="margin:0">🛡 Integrity Check</div>
+      <button class="btn btn-ghost" onclick="closeModal('integrityModal')">Close ✕</button>
+    </div>
+    <div class="card-sub">Paste any paragraph to check for AI-sounding language and source similarity.</div>
+    <div class="field"><label>Text to check</label><textarea id="modalIntegrityText" rows="6" placeholder="Paste a paragraph..."></textarea></div>
+    <div class="btn-row"><button class="btn btn-rose" onclick="runModalIntegrityCheck()">Run check →</button></div>
+    <div id="modalIntegrityOutput" style="margin-top:16px"></div>
+  </div></div>
+</div>
+
+<!-- FRAMEWORK MODAL -->
+<div class="modal-overlay" id="fwModal">
+  <div class="modal-inner"><div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="card-title" style="margin:0">⚙ Writing Frameworks</div>
+      <button class="btn btn-ghost" onclick="closeModal('fwModal')">Close ✕</button>
+    </div>
+    <div class="card-sub">Edit guiding questions or add new frameworks. Changes apply immediately.</div>
+    <div id="fwEditorContent"></div>
+    <div class="btn-row"><button class="btn btn-violet" onclick="addFramework()">+ Add framework</button></div>
+  </div></div>
+</div>
+
+</div>
+<script>
+// ─── ECE REFERENCE LIBRARY ────────────────────────────────────────────────────
+const ECE_LIBRARY = [
+  {id:'dinham',authors:"Dinham, J., & Chalk, B.",year:"2022",title:"It's part of life: Teaching the creative arts in early childhood and primary education",edition:"4th ed.",publisher:"Cengage Learning",type:"book",topics:["arts","visual arts","creativity","early childhood","drawing","collage","music","drama"],summary:"A comprehensive guide to teaching the creative arts in early childhood and primary school settings. Covers visual arts, media arts, music, dance, and drama with practical classroom strategies.",paraphrase:"Dinham and Chalk (2022) argue that the arts provide young children with powerful ways to express ideas, develop thinking skills, and connect with their world."},
+  {id:'eylf',authors:"Australian Government Department of Education",year:"2022",title:"Belonging, Being & Becoming: The Early Years Learning Framework for Australia",edition:"V2.0",publisher:"Australian Government",type:"report",url:"https://www.acecqa.gov.au",topics:["belonging","being","becoming","identity","relationships","early childhood","learning","development"],summary:"Australia's national curriculum framework for early childhood education. Centres on three key concepts: Belonging, Being and Becoming, and five learning outcomes covering identity, community, wellbeing, learning, and communication.",paraphrase:"The EYLF (2022) emphasises that children's sense of belonging, being and becoming shapes their identity and underpins all aspects of their learning and development."},
+  {id:'aitsl',authors:"Australian Institute for Teaching and School Leadership",year:"2011",title:"Australian Professional Standards for Teachers",publisher:"AITSL",type:"report",url:"https://www.aitsl.edu.au",topics:["teaching standards","professional practice","teacher identity","graduate teacher"],summary:"The national framework describing what teachers are expected to know, understand and do. Organised around seven standards across three domains: Professional Knowledge, Professional Practice, and Professional Engagement.",paraphrase:"AITSL (2011) outlines seven professional standards that define the knowledge, practice, and engagement expected of teachers at every career stage."},
+  {id:'acara',authors:"Australian Curriculum, Assessment and Reporting Authority",year:"2022",title:"The Australian Curriculum: The Arts",publisher:"ACARA",type:"report",url:"https://www.australiancurriculum.edu.au",topics:["curriculum","arts","visual arts","media arts","music","drama","dance"],summary:"The national curriculum framework for The Arts, covering Visual Arts, Media Arts, Music, Drama, and Dance from Foundation to Year 10.",paraphrase:"ACARA (2022) positions The Arts as a key learning area in which children develop creative thinking, aesthetic understanding, and multimodal communication skills."},
+  {id:'yunkaporta',authors:"Yunkaporta, T., & McGinty, S.",year:"2009",title:"Reclaiming Aboriginal knowledge at the cultural interface",journal:"Australian Educational Researcher",volume:"36",issue:"2",pages:"55–72",type:"journal",topics:["Aboriginal","Indigenous","8 ways","cultural interface","knowledge"],summary:"Introduces the 8 Aboriginal Ways of Learning — a pedagogical framework grounded in Indigenous knowledge systems — and argues for its integration into mainstream schooling.",paraphrase:"Yunkaporta and McGinty (2009) present the 8 Ways framework as a means of embedding Indigenous ways of knowing and learning into everyday classroom practice."},
+  {id:'vygotsky',authors:"Vygotsky, L. S.",year:"1978",title:"Mind in society: The development of higher psychological processes",publisher:"Harvard University Press",type:"book",topics:["zone of proximal development","scaffolding","social learning","cognitive development","play"],summary:"Foundational work introducing the Zone of Proximal Development (ZPD) — the gap between what a child can do independently and what they can achieve with guidance. Emphasises the role of social interaction in learning.",paraphrase:"Vygotsky (1978) proposed that children learn most effectively within their zone of proximal development, where guided interaction with a more knowledgeable other scaffolds their growth."},
+  {id:'bronfenbrenner',authors:"Bronfenbrenner, U.",year:"1979",title:"The ecology of human development",publisher:"Harvard University Press",type:"book",topics:["ecological systems","environment","family","community","development","context"],summary:"Introduces the ecological systems theory, describing how nested environmental systems — from family and school to culture and society — shape a child's development.",paraphrase:"Bronfenbrenner (1979) argued that children's development cannot be understood in isolation — it is shaped by the complex interplay of family, school, community, and broader cultural systems."},
+  {id:'nqs',authors:"Australian Children's Education & Care Quality Authority",year:"2018",title:"National Quality Standard for Early Childhood Education and Care",publisher:"ACECQA",type:"report",url:"https://www.acecqa.gov.au",topics:["quality","NQS","early childhood","educational program","relationships","learning environment"],summary:"The National Quality Standard sets a national benchmark for the quality of education and care provided to children. It covers seven quality areas including educational program, relationships with children, and partnerships with families.",paraphrase:"The NQS (ACECQA, 2018) establishes quality benchmarks across seven areas that together define best practice in early childhood education and care."},
+  {id:'gibbs',authors:"Gibbs, G.",year:"1988",title:"Learning by doing: A guide to teaching and learning methods",publisher:"Further Education Unit, Oxford Polytechnic",type:"book",topics:["reflection","reflective practice","Gibbs cycle","learning"],summary:"Introduces the Gibbs Reflective Cycle — a six-stage model (Description, Feelings, Evaluation, Analysis, Conclusion, Action Plan) widely used in teacher education to structure reflective practice.",paraphrase:"Gibbs (1988) developed a structured reflective cycle to help practitioners move beyond simply describing experiences to analysing and learning from them."}
+];
+
+// ─── FRAMEWORKS ───────────────────────────────────────────────────────────────
+const FRAMEWORKS = {
+  PEE:{name:"PEE",fullName:"Point → Evidence → Explain",color:"sage",
+    description:"State your point, support it with a paraphrased reference, then explain what it means.",
+    detectKeywords:["analyse","appraise","discuss","demonstrate","show","describe","how"],
+    stages:[
+      {key:"P",label:"Point",prompt:"What is the ONE main idea of this paragraph? Write it as a clear statement in your own words."},
+      {key:"E",label:"Evidence",prompt:"Which source supports your point? Paraphrase it in your own words — do NOT copy. Include the citation: (Author, Year, p. X)."},
+      {key:"E2",label:"Explain",prompt:"So what? What does this evidence mean for children's learning or early childhood practice?"}
+    ]},
+  PEEL:{name:"PEEL",fullName:"Point → Evidence → Explain → Link",color:"amber",
+    description:"Like PEE but adds a sentence linking back to the question or leading to the next point.",
+    detectKeywords:["relationship","evaluate","consider","reflect on","compare","critically"],
+    stages:[
+      {key:"P",label:"Point",prompt:"What is the ONE main idea? Write a clear statement in your own words."},
+      {key:"E",label:"Evidence",prompt:"Which source supports this? Paraphrase in your own words and include (Author, Year, p. X)."},
+      {key:"E2",label:"Explain",prompt:"What does this mean for children's learning or practice?"},
+      {key:"L",label:"Link",prompt:"Write a sentence linking back to the essay question OR connecting to your next point."}
+    ]},
+  GIBBS:{name:"Gibbs",fullName:"Gibbs' Reflective Cycle",color:"violet",
+    description:"For reflective writing. Moves through description, feelings, evaluation, analysis, conclusion, and action.",
+    detectKeywords:["reflect","reflective","experience","personally","as a teacher","learning experience"],
+    stages:[
+      {key:"D",label:"Describe",prompt:"What happened? Describe factually — just what occurred, no interpretation."},
+      {key:"F",label:"Feelings",prompt:"How did you feel during or after? What were you thinking?"},
+      {key:"Ev",label:"Evaluate",prompt:"What went well? What didn't? Be specific and honest."},
+      {key:"A",label:"Analyse",prompt:"Why did things happen this way? What does the literature say about this?"},
+      {key:"C",label:"Conclude",prompt:"What have you learned? What would you do differently?"},
+      {key:"Ac",label:"Action",prompt:"How will this change your practice as an early childhood educator?"}
+    ]}
+};
+
+const AI_PHRASES=["it is evident that","it is important to note","plays a crucial role","delve into","furthermore, it can be seen","it is worth noting","in conclusion, it is clear","this highlights the importance","navigating","in today's world","it goes without saying","it is undeniable","shed light on","multifaceted","robust","leverage","paramount","in the realm of","underscore","holistic approach","it is essential to","embark on","tapestry","pivotal","foster a deeper understanding"];
+
+const APA_TEMPLATES={
+  book:{label:"Book",fields:[{id:"authors",label:"Author(s)",hint:"Last, F. M. For two: Last, F., & Last, F."},{id:"year",label:"Year",hint:"e.g. 2022"},{id:"title",label:"Book title",hint:"Italics — sentence case"},{id:"edition",label:"Edition (if not first)",hint:"e.g. 4th ed."},{id:"publisher",label:"Publisher",hint:""}],rule:"Author(s). (Year). <em>Title</em> (edition). Publisher.",example:"Dinham, J., & Chalk, B. (2022). <em>It's part of life</em> (4th ed.). Cengage Learning."},
+  chapter:{label:"Book chapter",fields:[{id:"chauthors",label:"Chapter author(s)",hint:"Last, F. M."},{id:"chyear",label:"Year",hint:""},{id:"chtitle",label:"Chapter title",hint:"No italics"},{id:"edauthors",label:"Editor(s)",hint:"F. M. Last (Ed.)"},{id:"booktitle",label:"Book title",hint:"Italics"},{id:"pages",label:"Pages",hint:"pp. 45–67"},{id:"chpublisher",label:"Publisher",hint:""}],rule:"Author. (Year). Chapter title. In Editor (Ed.), <em>Book title</em> (pp. X–X). Publisher.",example:"Smith, J. (2022). Arts in early childhood. In B. Brown (Ed.), <em>Foundations of education</em> (pp. 34–56). Pearson."},
+  journal:{label:"Journal article",fields:[{id:"jauthors",label:"Author(s)",hint:"Last, F. M."},{id:"jyear",label:"Year",hint:""},{id:"jtitle",label:"Article title",hint:"No italics, sentence case"},{id:"jjournal",label:"Journal name",hint:"Italics, capitalise major words"},{id:"jvol",label:"Volume(Issue)",hint:"e.g. 36(2)"},{id:"jpages",label:"Pages",hint:"e.g. 55–72"},{id:"jdoi",label:"DOI or URL",hint:"https://doi.org/..."}],rule:"Author. (Year). Article title. <em>Journal</em>, <em>Vol</em>(Issue), pages. DOI",example:"Yunkaporta, T., & McGinty, S. (2009). Reclaiming Aboriginal knowledge. <em>Australian Educational Researcher</em>, <em>36</em>(2), 55–72."},
+  report:{label:"Report",fields:[{id:"rorg",label:"Organisation",hint:"e.g. AITSL"},{id:"ryear",label:"Year",hint:""},{id:"rtitle",label:"Report title",hint:"Italics"},{id:"rurl",label:"URL",hint:"https://..."}],rule:"Organisation. (Year). <em>Title</em>. URL",example:"AITSL. (2011). <em>Australian professional standards for teachers</em>. https://www.aitsl.edu.au"},
+  website:{label:"Webpage",fields:[{id:"wauthor",label:"Author/Organisation",hint:""},{id:"wyear",label:"Year",hint:"or n.d."},{id:"wtitle",label:"Page title",hint:"Italics"},{id:"wsite",label:"Website name",hint:"If different from author"},{id:"wurl",label:"URL",hint:"https://..."}],rule:"Author. (Year). <em>Title</em>. Site. URL",example:"Curtin University. (2023). <em>Academic integrity</em>. Curtin University. https://www.curtin.edu.au"}
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const state={studentName:'',brief:'',rubric:'',wordLimit:'',readings:'',briefFileData:null,rubricFileData:null,briefFileType:null,rubricFileType:null,paragraphs:[],savedRefs:[]};
+
+function countWords(t){return t.trim().split(/\s+/).filter(w=>w.length>0).length}
+function showLoading(id,msg){document.getElementById(id).innerHTML=`<div class="loading"><div class="spinner"></div>${msg}</div>`;}
+
+async function callClaude(system,user,extraMessages){
+  const messages=extraMessages||[{role:"user",content:user}];
+  const body={model:"claude-sonnet-4-6",max_tokens:1000,system,messages};
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const d=await res.json();
+  if(d.error) throw new Error(d.error.message);
+  return d.content[0].text;
+}
+
+async function callClaudeWithFile(system,text,fileData,fileType){
+  let content=[];
+  if(fileData){
+    if(fileType==='image'){
+      content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:fileData}});
+    } else {
+      content.push({type:"document",source:{type:"base64",media_type:fileType==='pdf'?"application/pdf":"application/vnd.openxmlformats-officedocument.wordprocessingml.document",data:fileData}});
+    }
+  }
+  content.push({type:"text",text});
+  return callClaude(system,null,[{role:"user",content}]);
+}
+
+function goToStage(n){
+  document.querySelectorAll('.stage').forEach(s=>s.classList.remove('active'));
+  document.getElementById(`stage-${n}`).classList.add('active');
+  document.querySelectorAll('.progress-step').forEach((s,i)=>{s.classList.remove('active','done');if(i<n)s.classList.add('done');if(i===n)s.classList.add('active');});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function detectFramework(title,focus){
+  const t=(title+' '+focus).toLowerCase();
+  for(const[k,fw] of Object.entries(FRAMEWORKS)){if(fw.detectKeywords.some(kw=>t.includes(kw))) return k;}
+  return 'PEE';
+}
+
+// ─── FILE HANDLING ────────────────────────────────────────────────────────────
+function handleDrag(e,zoneId){e.preventDefault();document.getElementById(zoneId).classList.add('dragover');}
+function handleDragLeave(e,zoneId){document.getElementById(zoneId).classList.remove('dragover');}
+function handleDrop(e,field){e.preventDefault();const f=e.dataTransfer.files[0];if(f) processFile(f,field);}
+function handleFile(e,field){const f=e.target.files[0];if(f) processFile(f,field);}
+
+function processFile(file,field){
+  const statusEl=document.getElementById(`${field}UploadStatus`);
+  const zoneEl=document.getElementById(`${field}Zone`);
+  const ext=file.name.split('.').pop().toLowerCase();
+  const isImage=['png','jpg','jpeg'].includes(ext);
+  const isPdf=ext==='pdf';
+  const isDocx=['docx','doc'].includes(ext);
+  if(!isImage&&!isPdf&&!isDocx){statusEl.innerHTML=`<div class="warn-box" style="margin-top:8px"><strong>Unsupported file.</strong> Please use PDF, Word (.docx), or an image.</div>`;return;}
+
+  statusEl.innerHTML=`<div class="loading" style="margin-top:8px"><div class="spinner"></div>Reading ${file.name}...</div>`;
+
+  const reader=new FileReader();
+  reader.onload=async(ev)=>{
+    const base64=ev.target.result.split(',')[1];
+    const fileType=isImage?'image':isPdf?'pdf':'docx';
+    if(field==='brief'){state.briefFileData=base64;state.briefFileType=fileType;}
+    else{state.rubricFileData=base64;state.rubricFileType=fileType;}
+
+    // Extract text to preview
+    try{
+      const extracted=await callClaudeWithFile(
+        `Extract all text content from this document. Output only the raw text, no commentary.`,
+        `Please extract all the text from this ${isImage?'image':'document'}.`,
+        base64, fileType
+      );
+      const preview=extracted.substring(0,200)+'...';
+      if(field==='brief') document.getElementById('assignmentBrief').value=extracted;
+      else document.getElementById('rubricText').value=extracted;
+      statusEl.innerHTML=`<div class="upload-success"><span class="upload-success-icon">✓</span><span><strong>${file.name}</strong> uploaded and read successfully</span></div><div class="upload-preview">${preview}</div>`;
+      zoneEl.classList.remove('dragover');
+    }catch(err){
+      statusEl.innerHTML=`<div class="warn-box" style="margin-top:8px"><strong>Could not read file.</strong> Please paste the text manually below.</div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── STAGE 0: START ───────────────────────────────────────────────────────────
+async function startCoaching(){
+  state.studentName=document.getElementById('studentName').value.trim()||'Emily';
+  state.brief=document.getElementById('assignmentBrief').value.trim();
+  state.rubric=document.getElementById('rubricText').value.trim();
+  state.wordLimit=document.getElementById('wordLimit').value.trim();
+  state.readings=document.getElementById('keyReadings').value.trim();
+  if(!state.brief){alert('Please add your assignment brief — upload a file or paste the text.');return;}
+  goToStage(1);
+  showLoading('understandOutput','Reading your assignment...');
+  try{
+    const result=await callClaude(
+      `You are a warm university writing tutor helping ${state.studentName}, an early childhood education student. Never write the essay for them.`,
+      `Assignment: ${state.brief}\nRubric: ${state.rubric||'Not provided'}\nWord limit: ${state.wordLimit||'Not specified'}\n\n1. WHAT IS BEING ASKED (plain English, 1-2 sentences)\n2. KEY INSTRUCTION VERBS (each with meaning — e.g. "appraise = make a judgement supported by evidence")\n3. WHAT TO DEMONSTRATE (3-5 bullet points)\n4. WHAT TO AVOID (2-3 common mistakes)\n5. ENCOURAGEMENT (one sentence for ${state.studentName})\n\nUse bold headings.`
+    );
+    document.getElementById('understandOutput').innerHTML=`<div class="ai-box"><div class="ai-box-label">✦ Task breakdown</div><div class="ai-box-content">${result}</div></div>`;
+    generatePlan();
+    loadBuiltInRefs();
+  }catch(e){
+    document.getElementById('understandOutput').innerHTML=`<div class="ai-box"><div class="ai-box-content">Something went wrong — please try again.</div></div>`;
+  }
+}
+
+// ─── STAGE 2: PLAN ────────────────────────────────────────────────────────────
+async function generatePlan(){
+  showLoading('planOutput','Building your plan...');
+  try{
+    const result=await callClaude(`Output ONLY the structured plan, no preamble.`,
+      `Assignment: ${state.brief}\nWord limit: ${state.wordLimit||'450-500 words'}\n\nList every paragraph:\nPARA: [title]\nWORDS: [number]\nFOCUS: [one sentence]\nTYPE: [analytical/reflective/introductory/concluding]\n---\n\nInclude intro and conclusion.`
+    );
+    const blocks=result.split('---').map(b=>b.trim()).filter(b=>b.startsWith('PARA:'));
+    state.paragraphs=blocks.map(block=>{
+      const lines=block.split('\n');
+      const get=k=>{const l=lines.find(x=>x.startsWith(k+':'));return l?l.slice(k.length+1).trim():''};
+      const title=get('PARA'),focus=get('FOCUS'),type=get('TYPE');
+      const suggested=(type==='reflective')?'GIBBS':detectFramework(title,focus);
+      return{title,words:get('WORDS'),focus,type,suggested,selected:suggested,stageAnswers:{},feedback:''};
+    });
+    let html='';
+    state.paragraphs.forEach((p,i)=>{
+      const fw=FRAMEWORKS[p.selected];
+      html+=`<div style="background:white;border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--soft);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${i+1}</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:600;margin-bottom:3px">${p.title}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:7px">${p.focus}</div>
+        <span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;background:var(--sage-light);color:var(--sage);margin-right:6px">${fw.name}</span>
+        <span style="font-size:11px;color:var(--muted)">${p.words} words</span></div></div>`;
+    });
+    document.getElementById('planOutput').innerHTML=html;
+    generateParagraphGuides();
+  }catch(e){
+    document.getElementById('planOutput').innerHTML=`<div class="ai-box"><div class="ai-box-content">Something went wrong.</div></div>`;
+  }
+}
+
+// ─── STAGE 3: REFERENCES ─────────────────────────────────────────────────────
+function loadBuiltInRefs(){
+  const briefLower=(state.brief+' '+state.readings).toLowerCase();
+  const matched=ECE_LIBRARY.filter(ref=>ref.topics.some(t=>briefLower.includes(t)));
+  const toShow=matched.length>0?matched:ECE_LIBRARY.slice(0,5);
+  renderRefCards(toShow,'refsBuiltIn','built-in','✦ Suggested from ECE library');
+}
+
+function renderRefCards(refs,containerId,badgeType,heading){
+  if(!refs.length){document.getElementById(containerId).innerHTML='';return;}
+  const badge=badgeType==='built-in'?'badge-built-in':'badge-web';
+  const badgeLabel=badgeType==='built-in'?'ECE Library':'Web Search';
+  let html=`<div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--muted)">${heading}</div>`;
+  refs.forEach((ref,i)=>{
+    const id=`${containerId}-ref-${i}`;
+    const authors=ref.authors||(ref.author||'');
+    const intext=buildIntext(ref);
+    html+=`<div class="ref-card" id="${id}">
+      <div class="ref-card-header" onclick="toggleRef('${id}')">
+        <span class="ref-card-badge ${badge}">${badgeLabel}</span>
+        <div class="ref-card-title">${authors} (${ref.year}) — ${ref.title}</div>
+      </div>
+      <div class="ref-card-body" id="${id}-body" style="display:none">
+        <div class="ref-section-title">APA 7th Citation</div>
+        <div class="ref-apa">${buildAPACitation(ref)}</div>
+        <div class="ref-section-title">In-text format</div>
+        <div class="ref-apa">${intext}</div>
+        <div class="ref-section-title">What it's about</div>
+        <div class="ref-section-body">${ref.summary||ref.description||''}</div>
+        <div class="ref-section-title">Paraphrase example</div>
+        <div class="ref-section-body" style="font-style:italic;color:var(--sage)">${ref.paraphrase||''}</div>
+        <div class="warn-box" style="margin-top:10px;font-size:12px"><strong>⚠ Remember:</strong> This paraphrase is a MODEL ONLY — do not copy it. Write your own version in your own words.</div>
+        <button class="btn btn-secondary ref-add-btn" onclick="saveRef('${containerId}',${i})">+ Add to my references</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById(containerId).innerHTML=html;
+}
+
+function buildAPACitation(ref){
+  if(ref.type==='book')return`${ref.authors} (${ref.year}). <em>${ref.title}</em>${ref.edition?' ('+ref.edition+')':''}. ${ref.publisher}.`;
+  if(ref.type==='journal')return`${ref.authors} (${ref.year}). ${ref.title}. <em>${ref.journal}</em>, <em>${ref.volume}</em>(${ref.issue}), ${ref.pages}.${ref.doi?' https://doi.org/'+ref.doi:''}`;
+  if(ref.type==='report')return`${ref.authors} (${ref.year}). <em>${ref.title}</em>. ${ref.url||ref.publisher||''}.`;
+  return`${ref.authors} (${ref.year}). <em>${ref.title}</em>. ${ref.publisher||ref.url||''}.`;
+}
+
+function buildIntext(ref){
+  const authors=ref.authors||ref.author||'';
+  const parts=authors.split(',');
+  const lastName=parts[0].trim();
+  const hasAmpersand=authors.includes('&');
+  const authorCount=(authors.match(/,/g)||[]).length;
+  if(authorCount<=1&&!hasAmpersand) return`(${lastName}, ${ref.year})`;
+  if(hasAmpersand){const names=authors.split('&');const l1=names[0].trim().split(',')[0].trim();const l2=names[1].trim().split(',')[0].trim();return`(${l1} & ${l2}, ${ref.year})`;}
+  return`(${lastName} et al., ${ref.year})`;
+}
+
+function toggleRef(id){const b=document.getElementById(`${id}-body`);if(b) b.style.display=b.style.display==='none'?'block':'none';}
+
+function saveRef(containerId,idx){
+  const cards=document.querySelectorAll(`#${containerId} .ref-card`);
+  // find the ref from the rendered list
+  const allRefs=containerId==='refsBuiltIn'?
+    ECE_LIBRARY.filter(r=>r.topics.some(t=>(state.brief+' '+state.readings).toLowerCase().includes(t))):
+    (window._lastWebRefs||[]);
+  const ref=allRefs[idx]||(containerId==='refsBuiltIn'?ECE_LIBRARY.slice(0,5)[idx]:null);
+  if(!ref) return;
+  if(!state.savedRefs.find(r=>r.title===ref.title)){
+    state.savedRefs.push(ref);
+    updateMyRefList();
+    const btn=document.querySelector(`#${containerId}-ref-${idx} .ref-add-btn`);
+    if(btn){btn.textContent='✓ Added';btn.disabled=true;btn.style.opacity='0.6';}
+  }
+}
+
+function updateMyRefList(){
+  if(!state.savedRefs.length){document.getElementById('myRefList').innerHTML='';return;}
+  let html=`<div style="background:var(--ink);color:white;border-radius:10px;padding:16px 18px;margin-top:20px">
+    <div style="font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;opacity:0.6">My Reference List (${state.savedRefs.length})</div>`;
+  state.savedRefs.forEach(ref=>{html+=`<div style="font-size:13px;line-height:1.7;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1)">${buildAPACitation(ref)}</div>`;});
+  html+=`</div>`;
+  document.getElementById('myRefList').innerHTML=html;
+}
+
+async function searchMoreRefs(){
+  const query=document.getElementById('refSearchQuery').value.trim();
+  if(!query){alert('Enter a search topic.');return;}
+  const outEl=document.getElementById('refsWebSearch');
+  outEl.innerHTML=`<div class="loading"><div class="spinner"></div>Searching for academic sources on "${query}"...</div>`;
+  try{
+    const result=await callClaude(
+      `You are an academic librarian specialising in early childhood education. Find real, verifiable academic sources. Output ONLY JSON — no markdown, no preamble.`,
+      `Find 3-4 real academic sources about: "${query}" relevant to early childhood education.\n\nOutput ONLY a JSON array:\n[\n  {\n    "authors": "Last, F., & Last, F.",\n    "year": "2022",\n    "title": "Full title",\n    "type": "book or journal or report",\n    "publisher": "Publisher name (for books)",\n    "journal": "Journal name (for articles)",\n    "volume": "vol",\n    "issue": "issue",\n    "pages": "xx-xx",\n    "url": "https://...",\n    "summary": "2-sentence plain English summary",\n    "paraphrase": "One example sentence showing how to paraphrase this source with in-text citation"\n  }\n]\n\nOnly include real sources you are confident exist. Include page numbers in paraphrase examples.`
+    );
+    const clean=result.replace(/```json|```/g,'').trim();
+    const refs=JSON.parse(clean);
+    window._lastWebRefs=refs;
+    renderRefCards(refs,'refsWebSearch','web','🔍 Web search results');
+  }catch(e){
+    outEl.innerHTML=`<div class="warn-box">Could not find results — try a different search term, or check spelling.</div>`;
+  }
+}
+
+// ─── STAGE 4: WRITE ───────────────────────────────────────────────────────────
+function generateParagraphGuides(){if(!state.paragraphs.length) return;renderParagraphGuides();}
+
+function renderParagraphGuides(){
+  let html='';
+  state.paragraphs.forEach((p,i)=>{
+    const fw=FRAMEWORKS[p.selected];
+    html+=`<div class="para-card ${i===0?'active-para':''}" id="pc-${i}">
+      <div class="para-header" onclick="togglePara(${i})">
+        <div class="para-num">${i+1}</div>
+        <div style="flex:1"><div class="para-title">${p.title}</div><div class="para-meta">${p.focus}</div></div>
+        <div class="para-words">${p.words} words</div>
+      </div>
+      <div class="para-body" id="pb-${i}" style="display:${i===0?'block':'none'}">
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">FRAMEWORK <span style="font-weight:400;color:var(--sage)">— suggested: ${fw.name}</span></div>
+          <div class="framework-selector">${Object.entries(FRAMEWORKS).map(([k,f])=>`<button class="fw-btn ${k===p.suggested?'suggested':''} ${k===p.selected?'selected':''}" onclick="selectFw(${i},'${k}')">${f.name}<br><span style="font-weight:400;font-size:10px">${f.fullName}</span></button>`).join('')}</div>
+          <div style="font-size:12px;color:var(--muted)">${fw.description}</div>
+        </div>
+        <div class="fw-steps" id="fwsteps-${i}">${fw.stages.map((s,si)=>`<div class="fw-step ${si===0?'active-step':''}" id="fws-${i}-${si}" onclick="activateStep(${i},${si})">${s.key}<div class="fw-step-label">${s.label}</div></div>`).join('')}</div>
+        <div id="fwcontent-${i}">${fw.stages.map((s,si)=>`<div id="fwp-${i}-${si}" style="display:${si===0?'block':'none'}"><div style="background:var(--soft);border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px;line-height:1.6"><strong>${s.label}:</strong> ${s.prompt}</div><textarea rows="3" id="fwa-${i}-${si}" placeholder="Write your answer in your own words..." onchange="saveAns(${i},${si})">${p.stageAnswers[si]||''}</textarea></div>`).join('')}</div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="getParaFeedback(${i})">Get feedback ✦</button>
+          <button class="btn btn-ghost" onclick="runInlineIntegrity(${i})">🛡 Check writing</button>
+          <button class="btn btn-ghost" onclick="markDone(${i})">Mark done ✓</button>
+        </div>
+        <div id="pfeedback-${i}"></div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('paragraphsOutput').innerHTML=html;
+}
+
+function selectFw(idx,key){state.paragraphs[idx].selected=key;renderParagraphGuides();const b=document.getElementById(`pb-${idx}`);if(b)b.style.display='block';document.getElementById(`pc-${idx}`).classList.add('active-para');}
+function activateStep(pi,si){const fw=FRAMEWORKS[state.paragraphs[pi].selected];fw.stages.forEach((_,j)=>{const s=document.getElementById(`fws-${pi}-${j}`);const p=document.getElementById(`fwp-${pi}-${j}`);if(s)s.classList.toggle('active-step',j===si);if(p)p.style.display=j===si?'block':'none';});}
+function togglePara(idx){const b=document.getElementById(`pb-${idx}`);if(!b)return;const open=b.style.display!=='none';b.style.display=open?'none':'block';document.getElementById(`pc-${idx}`).classList.toggle('active-para',!open);}
+function saveAns(pi,si){const el=document.getElementById(`fwa-${pi}-${si}`);if(el)state.paragraphs[pi].stageAnswers[si]=el.value;}
+function markDone(idx){const fw=FRAMEWORKS[state.paragraphs[idx].selected];fw.stages.forEach((_,si)=>{const el=document.getElementById(`fwa-${idx}-${si}`);if(el)state.paragraphs[idx].stageAnswers[si]=el.value;});document.getElementById(`pc-${idx}`).classList.remove('active-para');document.getElementById(`pc-${idx}`).classList.add('done-para');document.getElementById(`pb-${idx}`).style.display='none';updateDraft();if(idx+1<state.paragraphs.length)togglePara(idx+1);}
+
+function updateDraft(){
+  let full='';
+  state.paragraphs.forEach(p=>{const fw=FRAMEWORKS[p.selected];let t='';fw.stages.forEach((_,si)=>{const a=p.stageAnswers[si]||'';if(a.trim())t+=a.trim()+' ';});if(t.trim())full+=`[${p.title}]\n${t.trim()}\n\n`;});
+  const el=document.getElementById('draftDisplay');if(el)el.textContent=full||'Complete paragraphs above...';
+  const wc=countWords(full);const wcEl=document.getElementById('draftWordCount');
+  if(wcEl&&wc>0){wcEl.textContent=`${wc} words`;wcEl.className='word-count '+(wc>550?'over':wc>=450?'good':'');}
+}
+
+async function getParaFeedback(idx){
+  const fw=FRAMEWORKS[state.paragraphs[idx].selected];
+  fw.stages.forEach((_,si)=>{const el=document.getElementById(`fwa-${idx}-${si}`);if(el)state.paragraphs[idx].stageAnswers[si]=el.value;});
+  const answers=fw.stages.map((s,si)=>({stage:s.label,answer:state.paragraphs[idx].stageAnswers[si]||''})).filter(a=>a.answer.trim());
+  if(!answers.length){alert('Write something first.');return;}
+  const div=document.getElementById(`pfeedback-${idx}`);
+  div.innerHTML=`<div class="loading"><div class="spinner"></div>Reading your answers...</div>`;
+  try{
+    const p=state.paragraphs[idx];
+    const result=await callClaude(
+      `You are a warm university writing tutor. Give targeted feedback — never rewrite sentences for the student. If you show a sentence structure, label it clearly: MODEL ONLY — do not copy.`,
+      `Assignment: ${state.brief}\nParagraph: "${p.title}" (${p.words} words)\nFramework: ${fw.name}\n\nAnswers:\n${answers.map(a=>`${a.stage}: ${a.answer}`).join('\n\n')}\n\n✓ WHAT'S WORKING:\n? DEVELOP THIS: (one follow-up question)\n→ CONNECTING YOUR ANSWERS: (guide without writing for them)\n📚 REFERENCE CHECK: (APA 7th correct?)\n⚠ INTEGRITY: (flag AI-sounding phrases)\n\nMax 180 words.`
+    );
+    div.innerHTML=`<div class="ai-box" style="margin-top:14px"><div class="ai-box-label">✦ Feedback</div><div class="ai-box-content">${result}</div></div>`;
+  }catch(e){div.innerHTML=`<div class="ai-box"><div class="ai-box-content">Something went wrong.</div></div>`;}
+}
+
+// ─── INTEGRITY ────────────────────────────────────────────────────────────────
+async function runInlineIntegrity(idx){
+  const fw=FRAMEWORKS[state.paragraphs[idx].selected];
+  let txt='';fw.stages.forEach((_,si)=>{const el=document.getElementById(`fwa-${idx}-${si}`);if(el)txt+=el.value+' ';});
+  if(!txt.trim()){alert('Write something first.');return;}
+  const div=document.getElementById(`pfeedback-${idx}`);
+  div.innerHTML=`<div class="loading"><div class="spinner"></div>Checking integrity...</div>`;
+  await runIntegrityCheck(txt,div);
+}
+
+async function runIntegrityCheck(text,outputEl){
+  const lower=text.toLowerCase();
+  const flagged=AI_PHRASES.filter(p=>lower.includes(p));
+  let local='';
+  if(flagged.length){
+    let hi=text;flagged.forEach(p=>{const re=new RegExp(p,'gi');hi=hi.replace(re,`<span class="flagged-phrase">$&</span>`);});
+    local=`<div class="integrity-banner integrity-ai"><div class="integrity-title">⚠ AI-sounding phrases detected</div><div style="margin-bottom:8px">${hi}</div><div style="font-size:12px;color:var(--rose)">Flagged: ${flagged.map(p=>`"${p}"`).join(', ')} — rewrite in your own natural voice.</div></div>`;
+  }
+  try{
+    const result=await callClaude(
+      `You are an academic integrity checker. Be honest and specific. Never rewrite for the student.`,
+      `Check for:\n1. AI-generated language patterns\n2. Source-hugging (too close to original wording)\n3. APA 7th citation errors\n\nText: "${text}"\n\nAI LANGUAGE: [Clean/Minor/Significant] — specific phrases\nSOURCE SIMILARITY: [Low/Moderate/High risk] — explain\nCITATION CHECK: [Correct/Issues] — list errors\nACTION: [one concrete fix or "looks good"]\n\nUnder 120 words.`
+    );
+    const risk=result.includes('Significant')||result.includes('High')?'integrity-ai':result.includes('Minor')||result.includes('Moderate')?'integrity-warn':'integrity-ok';
+    outputEl.innerHTML=local+`<div class="integrity-banner ${risk}"><div class="integrity-title">${risk==='integrity-ok'?'✓ Looks good':'⚠ Review needed'}</div><div style="font-size:13px;white-space:pre-wrap">${result}</div></div>`;
+  }catch(e){outputEl.innerHTML=local+`<div class="integrity-banner integrity-warn"><div class="integrity-title">⚠ Partial check only</div><div>Local phrase check completed. AI check unavailable — please try again.</div></div>`;}
+}
+
+// ─── FINAL CHECKS ─────────────────────────────────────────────────────────────
+async function checkRubric(){
+  const essay=document.getElementById('finalEssay').value.trim();
+  if(!essay){alert('Paste your essay first.');return;}
+  showLoading('rubricOutput','Checking against rubric...');
+  try{
+    const wc=countWords(essay);
+    const result=await callClaude(`You are a university marking tutor. Give honest criterion-by-criterion feedback.`,
+      `Rubric: ${state.rubric||'Standard academic criteria'}\nAssignment: ${state.brief}\nWord limit: ${state.wordLimit||'450-500'}\nEssay (${wc} words):\n${essay}\n\nFor each criterion:\nCRITERION: [name]\nGRADE: [HD/D/CR/P/Fail]\nSTRENGTH: [specific]\nIMPROVE: [one thing]\nACTION: [concrete step]\n---\nOVERALL: [2 sentences + encouragement]\nWORDS: [word count comment]`
+    );
+    const sections=result.split('---').map(s=>s.trim()).filter(s=>s);
+    let html=`<div style="font-size:13px;color:var(--muted);margin-bottom:14px">${wc} words checked</div>`;
+    const gm={HD:'badge-hd',D:'badge-d',CR:'badge-cr',P:'badge-p',Fail:'badge-fail'};
+    sections.forEach(sec=>{
+      if(sec.startsWith('OVERALL:')){html+=`<div class="ai-box"><div class="ai-box-label">✦ Overall</div><div class="ai-box-content">${sec.replace('OVERALL:','').trim()}</div></div>`;return;}
+      if(sec.startsWith('WORDS:')){html+=`<div class="info-box"><strong>Word count:</strong> ${sec.replace('WORDS:','').trim()}</div>`;return;}
+      const lines=sec.split('\n');const get=k=>{const l=lines.find(x=>x.startsWith(k+':'));return l?l.slice(k.length+1).trim():''};
+      html+=`<div class="rubric-item"><div style="font-size:14px;font-weight:600;margin-bottom:8px">${get('CRITERION')||lines[0]}</div>${get('GRADE')?`<span class="rubric-badge ${gm[get('GRADE')]||'badge-cr'}">${get('GRADE')}</span>`:''}<div style="font-size:13px;line-height:1.65;margin-bottom:6px">✓ ${get('STRENGTH')}</div><div style="font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:8px">↗ ${get('IMPROVE')}</div><div style="padding:8px 12px;background:var(--soft);border-radius:6px;font-size:12px"><strong>Action:</strong> ${get('ACTION')}</div></div>`;
+    });
+    document.getElementById('rubricOutput').innerHTML=html;
+  }catch(e){document.getElementById('rubricOutput').innerHTML=`<div class="ai-box"><div class="ai-box-content">Something went wrong.</div></div>`;}
+}
+
+async function checkIntegrity(){
+  const text=document.getElementById('integrityEssay').value.trim();
+  if(!text){alert('Paste your essay.');return;}
+  showLoading('integrityOutput','Running integrity check...');
+  await runIntegrityCheck(text,document.getElementById('integrityOutput'));
+}
+
+async function checkAPA(){
+  const refs=document.getElementById('apaEssay').value.trim();
+  if(!refs){alert('Paste your reference list.');return;}
+  showLoading('apaOutput','Checking APA 7th...');
+  try{
+    const result=await callClaude(`You are an APA 7th expert. Check every detail — punctuation, italics, capitalisation, author format, DOI/URL.`,
+      `Reference list:\n${refs}\n\nIn-text citations:\n${document.getElementById('apaIntext').value||'None'}\n\nFor each reference:\nREF: [author/year]\nSTATUS: [Correct/Has errors]\nISSUES: [list errors]\nCORRECTED: [show corrected version]\n---\nIN-TEXT ISSUES: [any in-text errors]\nSUMMARY: [overall comment]`
+    );
+    const sections=result.split('---').map(s=>s.trim()).filter(s=>s);
+    let html='';
+    sections.forEach(sec=>{
+      if(sec.startsWith('IN-TEXT')||sec.startsWith('SUMMARY')){html+=`<div class="apa-box"><div class="apa-box-label">📚 Summary</div><div class="ai-box-content" style="font-size:13px">${sec}</div></div>`;return;}
+      const lines=sec.split('\n');const get=k=>{const l=lines.find(x=>x.startsWith(k+':'));return l?l.slice(k.length+1).trim():''};
+      const ok=get('STATUS')==='Correct';
+      html+=`<div style="background:white;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;${ok?'background:var(--sage-light);color:var(--sage)':'background:var(--rose-light);color:var(--rose)'}">${ok?'✓ Correct':'✕ Errors'}</span><span style="font-size:13px;font-weight:600">${get('REF')}</span></div>${!ok?`<div style="font-size:13px;color:var(--rose);margin-bottom:6px">Issues: ${get('ISSUES')}</div>`:''}${get('CORRECTED')?`<div class="apa-correct">${get('CORRECTED')}</div>`:''}</div>`;
+    });
+    document.getElementById('apaOutput').innerHTML=html;
+  }catch(e){document.getElementById('apaOutput').innerHTML=`<div class="ai-box"><div class="ai-box-content">Something went wrong.</div></div>`;}
+}
+
+function checkDeclaration(){
+  const unchecked=['dec1','dec2','dec3','dec4','dec5','dec6'].filter(id=>!document.getElementById(id).checked);
+  const res=document.getElementById('declarationResult');
+  if(unchecked.length){res.innerHTML=`<div class="warn-box"><strong>Not complete:</strong> ${unchecked.length} statement${unchecked.length>1?'s':''} remaining.</div>`;}
+  else{res.innerHTML=`<div class="integrity-banner integrity-ok"><div class="integrity-title">✓ Declaration complete</div><div style="font-size:13px">Your work is confirmed as your own. Good luck with your submission, ${state.studentName||'Emily'}!</div></div>`;}
+}
+
+// ─── APA BUILDER ──────────────────────────────────────────────────────────────
+function renderApaBuilder(){
+  const type=document.getElementById('apaSourceType').value;
+  if(!type){document.getElementById('apaBuilderContent').innerHTML='';return;}
+  const tmpl=APA_TEMPLATES[type];
+  let html=`<div class="apa-box" style="margin-bottom:14px"><div class="apa-box-label">📚 Rule</div><div style="font-size:13px;margin-bottom:6px"><strong>Format:</strong> ${tmpl.rule}</div><div style="font-size:13px"><strong>Example:</strong> ${tmpl.example}</div></div>`;
+  html+=tmpl.fields.map(f=>`<div class="ref-builder-step"><div class="ref-builder-step-title">${f.label}</div><input type="text" id="apab-${f.id}" placeholder="${f.hint}" style="font-size:13px"/></div>`).join('');
+  html+=`<div class="btn-row"><button class="btn btn-violet" onclick="buildApaRef('${type}')">Build reference →</button></div>`;
+  document.getElementById('apaBuilderContent').innerHTML=html;
+  document.getElementById('apaBuilderResult').innerHTML='';
+}
+
+async function buildApaRef(type){
+  const tmpl=APA_TEMPLATES[type];
+  const values=tmpl.fields.map(f=>`${f.label}: ${document.getElementById('apab-'+f.id)?.value||'(blank)'}`).join('\n');
+  document.getElementById('apaBuilderResult').innerHTML=`<div class="loading"><div class="spinner"></div>Building reference...</div>`;
+  try{
+    const result=await callClaude(`You are an APA 7th expert. Build the reference and teach the rules.`,
+      `Type: ${tmpl.label}\nProvided:\n${values}\nFormat rule: ${tmpl.rule}\n\nOutput:\nREFERENCE: [complete APA 7th reference]\nIN-TEXT: [in-text citation format]\nNOTES: [explain any corrections and the rule behind them]`
+    );
+    document.getElementById('apaBuilderResult').innerHTML=`<div class="apa-box"><div class="apa-box-label">✦ Your reference</div><div class="ai-box-content" style="font-size:13px">${result}</div></div>`;
+  }catch(e){document.getElementById('apaBuilderResult').innerHTML=`<div class="ai-box"><div class="ai-box-content">Something went wrong.</div></div>`;}
+}
+
+// ─── FRAMEWORK EDITOR ─────────────────────────────────────────────────────────
+function renderFwEditor(){
+  let html='';
+  Object.entries(FRAMEWORKS).forEach(([key,fw])=>{
+    html+=`<div style="background:white;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">
+      <div style="padding:14px 18px;background:var(--soft);border-bottom:1px solid var(--border);font-size:14px;font-weight:600">${fw.name} — ${fw.fullName}</div>
+      <div style="padding:14px 18px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${fw.description}</div>
+        ${fw.stages.map((s,si)=>`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px">
+          <div style="background:var(--violet);color:white;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap;margin-top:6px;min-width:36px;text-align:center">${s.key}</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:600;margin-bottom:4px">${s.label}</div>
+          <textarea rows="2" style="font-size:12px" onchange="FRAMEWORKS['${key}'].stages[${si}].prompt=this.value">${s.prompt}</textarea></div>
+        </div>`).join('')}
+      </div></div>`;
+  });
+  document.getElementById('fwEditorContent').innerHTML=html;
+}
+
+function addFramework(){
+  const name=prompt('Framework name (e.g. PECE):');if(!name)return;
+  const full=prompt('Full name (e.g. Point → Evidence → Counter → Explain):');if(!full)return;
+  FRAMEWORKS[name.toUpperCase()]={name:name.toUpperCase(),fullName:full,color:'sage',description:'Custom framework.',detectKeywords:[],stages:full.split('→').map(s=>({key:s.trim()[0],label:s.trim(),prompt:`Write your ${s.trim().toLowerCase()} here.`}))};
+  renderFwEditor();
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById(id).style.display='block';if(id==='fwModal')renderFwEditor();}
+function closeModal(id){document.getElementById(id).style.display='none';}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.style.display='none';}));
+
+function switchTab(t){
+  document.getElementById('tab-guide').classList.toggle('active',t==='guide');
+  document.getElementById('tab-draft').classList.toggle('active',t==='draft');
+  document.getElementById('writeGuide').style.display=t==='guide'?'block':'none';
+  document.getElementById('writeDraft').style.display=t==='draft'?'block':'none';
+  if(t==='draft')updateDraft();
+}
+
+function switchFinalTab(t){
+  ['rubric','integrity','apa','declare'].forEach(tab=>{
+    document.getElementById(`ftab-${tab}`).classList.toggle('active',tab===t);
+    document.getElementById(`fpanel-${tab}`).style.display=tab===t?'block':'none';
+  });
+}
+
+async function runModalIntegrityCheck(){
+  const text=document.getElementById('modalIntegrityText').value.trim();
+  if(!text){alert('Paste text first.');return;}
+  showLoading('modalIntegrityOutput','Checking...');
+  await runIntegrityCheck(text,document.getElementById('modalIntegrityOutput'));
+}
+</script>
+</body>
+</html>
