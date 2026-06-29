@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Essay Coach</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;1,300&family=Inter:wght@400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -404,6 +406,10 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--sage)}
 </div>
 <script>
 // ─── ECE REFERENCE LIBRARY ────────────────────────────────────────────────────
+// Set PDF.js worker
+if(typeof pdfjsLib !== 'undefined'){
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 const ECE_LIBRARY = [
   {id:'dinham',authors:"Dinham, J., & Chalk, B.",year:"2022",title:"It's part of life: Teaching the creative arts in early childhood and primary education",edition:"4th ed.",publisher:"Cengage Learning",type:"book",topics:["arts","visual arts","creativity","early childhood","drawing","collage","music","drama"],summary:"A comprehensive guide to teaching the creative arts in early childhood and primary school settings. Covers visual arts, media arts, music, dance, and drama with practical classroom strategies.",paraphrase:"Dinham and Chalk (2022) argue that the arts provide young children with powerful ways to express ideas, develop thinking skills, and connect with their world."},
   {id:'eylf',authors:"Australian Government Department of Education",year:"2022",title:"Belonging, Being & Becoming: The Early Years Learning Framework for Australia",edition:"V2.0",publisher:"Australian Government",type:"report",url:"https://www.acecqa.gov.au",topics:["belonging","being","becoming","identity","relationships","early childhood","learning","development"],summary:"Australia's national curriculum framework for early childhood education. Centres on three key concepts: Belonging, Being and Becoming, and five learning outcomes covering identity, community, wellbeing, learning, and communication.",paraphrase:"The EYLF (2022) emphasises that children's sense of belonging, being and becoming shapes their identity and underpins all aspects of their learning and development."},
@@ -473,17 +479,59 @@ async function callClaude(system,user,extraMessages){
   return d.content[0].text;
 }
 
-async function callClaudeWithFile(system,text,fileData,fileType){
-  let content=[];
-  if(fileData){
-    if(fileType==='image'){
-      content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:fileData}});
-    } else {
-      content.push({type:"document",source:{type:"base64",media_type:fileType==='pdf'?"application/pdf":"application/vnd.openxmlformats-officedocument.wordprocessingml.document",data:fileData}});
-    }
+// Client-side text extraction — no API document handling needed
+async function extractTextFromFile(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(['png','jpg','jpeg'].includes(ext)){
+    // For images: convert to base64 and send as vision input to Claude
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=async(ev)=>{
+        const base64=ev.target.result.split(',')[1];
+        try{
+          const res=await fetch("https://api.anthropic.com/v1/messages",{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,
+              messages:[{role:"user",content:[
+                {type:"image",source:{type:"base64",media_type:"image/jpeg",data:base64}},
+                {type:"text",text:"Extract all text from this image exactly as written. Output only the raw text, no commentary."}
+              ]}]})
+          });
+          const d=await res.json();
+          if(d.error) throw new Error(d.error.message);
+          resolve(d.content[0].text);
+        }catch(e){reject(e);}
+      };
+      reader.readAsDataURL(file);
+    });
   }
-  content.push({type:"text",text});
-  return callClaude(system,null,[{role:"user",content}]);
+  if(ext==='pdf'){
+    // PDF.js client-side extraction
+    return new Promise(async(resolve,reject)=>{
+      try{
+        const arrayBuffer=await file.arrayBuffer();
+        const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+        let fullText='';
+        for(let i=1;i<=pdf.numPages;i++){
+          const page=await pdf.getPage(i);
+          const content=await page.getTextContent();
+          fullText+=content.items.map(item=>item.str).join(' ')+'\n';
+        }
+        resolve(fullText.trim());
+      }catch(e){reject(e);}
+    });
+  }
+  if(['docx','doc'].includes(ext)){
+    // Mammoth.js client-side extraction
+    return new Promise(async(resolve,reject)=>{
+      try{
+        const arrayBuffer=await file.arrayBuffer();
+        const result=await mammoth.extractRawText({arrayBuffer});
+        resolve(result.value.trim());
+      }catch(e){reject(e);}
+    });
+  }
+  throw new Error('Unsupported file type');
 }
 
 function goToStage(n){
@@ -505,41 +553,27 @@ function handleDragLeave(e,zoneId){document.getElementById(zoneId).classList.rem
 function handleDrop(e,field){e.preventDefault();const f=e.dataTransfer.files[0];if(f) processFile(f,field);}
 function handleFile(e,field){const f=e.target.files[0];if(f) processFile(f,field);}
 
-function processFile(file,field){
+async function processFile(file,field){
   const statusEl=document.getElementById(`${field}UploadStatus`);
   const zoneEl=document.getElementById(`${field}Zone`);
   const ext=file.name.split('.').pop().toLowerCase();
-  const isImage=['png','jpg','jpeg'].includes(ext);
-  const isPdf=ext==='pdf';
-  const isDocx=['docx','doc'].includes(ext);
-  if(!isImage&&!isPdf&&!isDocx){statusEl.innerHTML=`<div class="warn-box" style="margin-top:8px"><strong>Unsupported file.</strong> Please use PDF, Word (.docx), or an image.</div>`;return;}
-
+  const supported=['png','jpg','jpeg','pdf','docx','doc'];
+  if(!supported.includes(ext)){
+    statusEl.innerHTML=`<div class="warn-box" style="margin-top:8px"><strong>Unsupported file.</strong> Please use PDF, Word (.docx), or an image.</div>`;
+    return;
+  }
   statusEl.innerHTML=`<div class="loading" style="margin-top:8px"><div class="spinner"></div>Reading ${file.name}...</div>`;
-
-  const reader=new FileReader();
-  reader.onload=async(ev)=>{
-    const base64=ev.target.result.split(',')[1];
-    const fileType=isImage?'image':isPdf?'pdf':'docx';
-    if(field==='brief'){state.briefFileData=base64;state.briefFileType=fileType;}
-    else{state.rubricFileData=base64;state.rubricFileType=fileType;}
-
-    // Extract text to preview
-    try{
-      const extracted=await callClaudeWithFile(
-        `Extract all text content from this document. Output only the raw text, no commentary.`,
-        `Please extract all the text from this ${isImage?'image':'document'}.`,
-        base64, fileType
-      );
-      const preview=extracted.substring(0,200)+'...';
-      if(field==='brief') document.getElementById('assignmentBrief').value=extracted;
-      else document.getElementById('rubricText').value=extracted;
-      statusEl.innerHTML=`<div class="upload-success"><span class="upload-success-icon">✓</span><span><strong>${file.name}</strong> uploaded and read successfully</span></div><div class="upload-preview">${preview}</div>`;
-      zoneEl.classList.remove('dragover');
-    }catch(err){
-      statusEl.innerHTML=`<div class="warn-box" style="margin-top:8px"><strong>Could not read file.</strong> Please paste the text manually below.</div>`;
-    }
-  };
-  reader.readAsDataURL(file);
+  try{
+    const extracted=await extractTextFromFile(file);
+    if(!extracted||extracted.trim().length<10) throw new Error('No text could be extracted');
+    const preview=extracted.substring(0,250)+'...';
+    if(field==='brief') document.getElementById('assignmentBrief').value=extracted;
+    else document.getElementById('rubricText').value=extracted;
+    statusEl.innerHTML=`<div class="upload-success"><span class="upload-success-icon">✓</span><strong>${file.name}</strong> read successfully</div><div class="upload-preview">${preview}</div>`;
+    zoneEl.classList.remove('dragover');
+  }catch(err){
+    statusEl.innerHTML=`<div class="warn-box" style="margin-top:8px"><strong>Could not read file automatically.</strong> Please paste the text manually in the box below.</div>`;
+  }
 }
 
 // ─── STAGE 0: START ───────────────────────────────────────────────────────────
